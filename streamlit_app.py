@@ -1,29 +1,30 @@
 import streamlit as st
-from snowflake.snowpark.context import get_active_session
 from snowflake.snowpark.functions import col
 from snowflake.snowpark.types import StringType
 
-# Ensure only one active session
+# Establish Snowflake session using Streamlit’s connection API
 try:
-    session = get_active_session()
-except:
-    st.error("No active session found. Please ensure your Snowflake connection is properly configured.")
+    # Access the Snowflake connection
+    cnx = st.experimental_connection("snowflake", type="snowflake")
+    session = cnx.session  # Use the session managed by Streamlit
+except Exception as e:
+    st.error(f"Failed to connect to Snowflake: {e}")
     st.stop()
 
-# Register the UDF using `session.udf.register`
+# Register the UDF with the active session
 def format_ingredients(ingredients_list: str) -> str:
     # Split and format ingredients consistently
     ingredients = ingredients_list.split(",")
     return ','.join(ingredient.strip() for ingredient in ingredients)
 
-# Register UDF with explicit session
+# Register the UDF
 format_ingredients_udf = session.udf.register(
     func=format_ingredients,
     return_type=StringType(),
     input_types=[StringType()],
-    name="UTIL_DB.PUBLIC.FORMAT_INGREDIENTS_UDF",  # Use a unique name
-    is_permanent=False,  # Set to True if you want it stored permanently
-    replace=True,  # Replace if it already exists
+    name="UTIL_DB.PUBLIC.FORMAT_INGREDIENTS_UDF",
+    is_permanent=False,
+    replace=True,
     session=session
 )
 
