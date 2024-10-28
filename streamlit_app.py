@@ -1,12 +1,13 @@
 import streamlit as st
-from snowflake.snowpark.context import get_active_session
+from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 
-# Get active Snowflake session
+# Establish Snowflake session using secrets from Streamlit configuration
 def get_snowflake_session():
     try:
-        # Attempt to get the active session directly
-        return get_active_session()
+        # Use st.secrets["snowflake"] directly for the connection parameters
+        connection_parameters = st.secrets["snowflake"]
+        return Session.builder.configs(connection_parameters).create()
     except Exception as e:
         st.error(f"Failed to connect to Snowflake: {e}")
         st.stop()
