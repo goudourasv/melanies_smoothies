@@ -1,36 +1,18 @@
 import streamlit as st
-from snowflake.snowpark import Session
+from snowflake.snowpark.context import get_active_session
 from snowflake.snowpark.functions import col
-from snowflake.snowpark.types import StringType
 
-# Establish a single Snowflake session manually
+# Get active Snowflake session
 def get_snowflake_session():
     try:
-        # Attempt to get an already active session
-        return Session.builder.configs(st.secrets["snowflake"]).create()
+        # Attempt to get the active session directly
+        return get_active_session()
     except Exception as e:
         st.error(f"Failed to connect to Snowflake: {e}")
         st.stop()
 
 # Initialize session
 session = get_snowflake_session()
-
-# Register the UDF with the active session
-def format_ingredients(ingredients_list: str) -> str:
-    # Split and format ingredients consistently
-    ingredients = ingredients_list.split(",")
-    return ','.join(ingredient.strip() for ingredient in ingredients)
-
-# Register the UDF
-format_ingredients_udf = session.udf.register(
-    func=format_ingredients,
-    return_type=StringType(),
-    input_types=[StringType()],
-    name="UTIL_DB.PUBLIC.FORMAT_INGREDIENTS_UDF",
-    is_permanent=False,
-    replace=True,
-    session=session
-)
 
 # App title and description
 st.title(":cup_with_straw: Customize Your Smoothie :cup_with_straw:")
@@ -42,20 +24,22 @@ fruit_df = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAM
 # Multiselect for ingredients
 ingredients_list = st.multiselect('Choose up to 5 ingredients:', fruit_df['FRUIT_NAME'], max_selections=5)
 
-# Insert order with formatted ingredients
-if ingredients_list:
-    # Apply UDF to format ingredients
-    ingredients_string = ','.join(ingredients_list)
-    formatted_ingredients = format_ingredients(ingredients_string)
+# Input for name on the order
+name_on_order = st.text_input("Enter the name for your smoothie:")
 
-    # Prepare SQL statement
+# Insert order if both ingredients and name are provided
+if ingredients_list and name_on_order:
+    # Prepare ingredients string in a simple comma-separated format
+    ingredients_string = ', '.join(ingredients_list)
+
+    # Prepare SQL insert statement
     insert_query = f"""
         INSERT INTO smoothies.public.orders (ingredients, name_on_order)
-        VALUES ('{formatted_ingredients}', 'Test_Order')
+        VALUES ('{ingredients_string}', '{name_on_order}')
     """
     st.write("Insert Query:", insert_query)
 
     # Submit button to insert order
     if st.button('Submit Order'):
         session.sql(insert_query).collect()
-        st.success(f"Order added with ingredients: {formatted_ingredients}", icon="✅")
+        st.success(f"Order for {name_on_order} added with ingredients: {ingredients_string}", icon="✅")
