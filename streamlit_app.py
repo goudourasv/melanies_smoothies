@@ -1,15 +1,19 @@
 import streamlit as st
+from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 from snowflake.snowpark.types import StringType
 
-# Establish Snowflake session using Streamlit’s connection API
-try:
-    # Access the Snowflake connection
-    cnx = st.experimental_connection("snowflake", type="snowflake")
-    session = cnx.session  # Use the session managed by Streamlit
-except Exception as e:
-    st.error(f"Failed to connect to Snowflake: {e}")
-    st.stop()
+# Establish a single Snowflake session manually
+def get_snowflake_session():
+    try:
+        # Attempt to get an already active session
+        return Session.builder.configs(st.secrets["snowflake"]).create()
+    except Exception as e:
+        st.error(f"Failed to connect to Snowflake: {e}")
+        st.stop()
+
+# Initialize session
+session = get_snowflake_session()
 
 # Register the UDF with the active session
 def format_ingredients(ingredients_list: str) -> str:
