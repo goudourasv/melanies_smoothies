@@ -15,31 +15,35 @@ st.write("The name of your smoothie will be: ", name_on_order)
 
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
 
+# Multiselect for ingredients
 ingredients_list = st.multiselect(
     'Choose up to 5 ingredients:',
     my_dataframe,
     max_selections=5
 )
 
-# Create the submit button here, independent of the other processing
+# Show the submit button
 time_to_insert = st.button('Submit Order')
 
-# Process only if ingredients are selected
-if ingredients_list:
-    ingredients_string = ''
+# Only process the order if ingredients are selected and the submit button is clicked
+if time_to_insert:
+    if ingredients_list:
+        # Create ingredients string
+        ingredients_string = ' '.join(ingredients_list)
 
-    for fruit_chosen in ingredients_list:
-        ingredients_string += fruit_chosen + ' '
-        fruityvice_response = requests.get("https://fruityvice.com/api/fruit/watermelon")
-        fv_df = st.dataframe(data=fruityvice_response.json(), use_container_width=True)
+        # Display Fruityvice information independently (optional)
+        for fruit_chosen in ingredients_list:
+            fruityvice_response = requests.get("https://fruityvice.com/api/fruit/watermelon")
+            fv_df = st.dataframe(data=fruityvice_response.json(), use_container_width=True)
 
-    # Prepare SQL statement
-    my_insert_stmt = """ 
-        INSERT INTO smoothies.public.orders(ingredients, name_on_order)
-        VALUES ('""" + ingredients_string + """', '""" + name_on_order + """')
-    """
+        # Prepare SQL statement
+        my_insert_stmt = f"""
+            INSERT INTO smoothies.public.orders(ingredients, name_on_order)
+            VALUES ('{ingredients_string}', '{name_on_order}')
+        """
 
-    # Process order on button click
-    if time_to_insert:
+        # Execute SQL statement
         session.sql(my_insert_stmt).collect()
-        st.success('Your ' + name_on_order + ' is ordered!', icon="✅")
+        st.success(f'Your {name_on_order} is ordered!', icon="✅")
+    else:
+        st.error("Please select at least one ingredient before submitting.")
