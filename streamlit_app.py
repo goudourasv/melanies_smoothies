@@ -47,4 +47,6 @@ if time_to_insert and ingredients_string:
     """
     # Execute insert statement
     session.sql(my_insert_stmt).collect()
-    st.success(f"Your {name_on_order} is ordered!",
+    st.success(f"Your {name_on_order} is ordered!", icon="✅")
+elif time_to_insert and not ingredients_string:
+    st.error("Please select ingredients before submitting the order.")
