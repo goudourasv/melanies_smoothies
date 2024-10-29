@@ -26,7 +26,7 @@ ingredients_list = st.multiselect(
 )
 
 # Create ingredients string for database insertion
-ingredients_string = ', '.join(ingredients_list) if ingredients_list else ''
+ingredients_string = ' '
 
 # Independent API call to fetch and display nutrition information
 if ingredients_list:
